@@ -1,0 +1,24 @@
+data_generator:
+  sample_rate: 44100
+  duration_seconds: 2.0
+  method: rule_based
+
+model:
+  num_classes: 7            # 0–6 cavitation states
+  type: msc_cnn             # basic_cnn or msc_cnn
+
+training:
+  lr: 0.0005
+  batch_size: 16
+  epochs: 50
+  num_workers: 4
+  checkpoint_path: checkpoints/last.pt
+  reset_optimizer: false
+
+dataset:
+  root_dir: output/dataset3       # path to WAV + CSV
+  csv_path: output/metadata.csv
+  split: random                   # random or fixed
+  val_ratio: 0.2
+  cache_resample: true
+  augment: false
