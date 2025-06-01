@@ -18,7 +18,6 @@ This version replaces the previous **heavy_compute**/**dtensor_bridge** modules 
 - [API Reference](#api-reference)  
   - [`stft_forward`](#stft_forward)  
   - [`generate_pink_noise_fft`](#generate_pink_noise_fft)  
-  - [`generate_pink_noise_pooling`](#generate_pink_noise_pooling)  
   - [`generate_noise`](#generate_noise)  
   - [`generate_burst`](#generate_burst)  
   - [`generate_tone`](#generate_tone)  
@@ -66,39 +65,9 @@ Pink noise exhibits a power spectral density (PSD)
 S(f)\propto \frac{1}{f}\,,
 ```
 
-i.e. each octave carries equal energy. Two principal synthesis methods are used:
+i.e. each octave carries equal energy.
 
----
-
-### Octave-Pooling Synthesis
-
-1. Generate \$O\$ white-noise octaves \$w\_i\[n]\in\mathcal N(0,1)\$, \$i=0,\dots,O-1\$.
-2. Downsample octave \$i\$ by factor \$2^i\$ via average-pooling:
-
-```math
-   d_i[n] = \mathrm{avg\_pool}\bigl(w_i[n],\,2^i\bigr)\,,
-   ```
-
-   yielding length \$N\_i=N/2^i\$.
-3. Upsample by repeat-interleave back to \$N\$:
-
-```math
-u_i[n] = \mathrm{repeat\_interleave}(d_i,\;2^i)\,,
-```
-
-   then truncate or zero-pad to length \$N\$.
-4. Weight each octave by \$2^{-i/2}\$ and sum:
-
-```math
-   y_{\mathrm{pool}}[n]
-   = \sum_{i=0}^{O-1} 2^{-i/2}\,u_i[n]\,.
-   ```
-
-This method is purely tensor-based and executes entirely on device with cost \$O(O,N)\$, but yields PSD that approximates \$1/f\$ only in octave bands.
-
----
-
-### Spectral FFT-Based Shaping (SOTA)
+##### **Spectral FFT-Based Shaping**
 
 1. Generate white noise \$w\[n]\in\mathcal N(0,1)\$.
 2. Compute real FFT:
@@ -126,7 +95,7 @@ This method is purely tensor-based and executes entirely on device with cost \$O
    y_{\mathrm{fft}}[n] \;\leftarrow\; \frac{y_{\mathrm{fft}}[n]}{\sqrt{\tfrac{1}{N}\sum_n y_{\mathrm{fft}}[n]^2}}.
    ```
 
-This spectral-shaping approach is \$O(N\log N)\$, yields a precise \$1/f\$ PSD across all bins, and is the state-of-the-art for batch ML pipelines on GPU/MPS.
+This spectral-shaping approach is \$O(N\log N)\$, yields a precise \$1/f\$ PSD across all bins, and is the state-of-the-art (SOTA) for batch ML pipelines on GPU/MPS.
 
 ---
 
@@ -216,7 +185,7 @@ applied in-place via `index_put_` \[7].
 
 This module provides signal-processing kernels optimized for real-time cavitation detection:
 
-* **Noise Generation**: White & pink (FFT-based SOTA or octave pooling)
+* **Noise Generation**: White & pink FFT-based
 * **STFT**: Hann-windowed spectrogram
 * **Burst Simulation**: Vectorized impulsive events + metadata
 * **Rotor-Tone**: Harmonic FM synthesis
@@ -267,23 +236,6 @@ torch::Tensor generate_pink_noise_fft(
 **Objective:** Generate pink (1/f) noise using FFT-based spectral shaping.
 
 **Returns:** Float32 tensor `[batch_size, num_samples]` with pink noise normalized to unit RMS.
-
----
-
-### generate\_pink\_noise\_pooling
-
-```cpp
-torch::Tensor generate_pink_noise_pooling(
-    int32_t batch_size,
-    int32_t num_samples,
-    int32_t octaves,
-    Device  device
-);
-```
-
-**Objective:** Generate pink noise via octave pooling method.
-
-**Returns:** Float32 tensor `[batch_size, num_samples]` containing pink noise.
 
 ---
 
@@ -490,7 +442,6 @@ auto spec = audio::stft_forward(
 | test\_spec\_augment\_batch                 | 64 × 128 × 512 = 4 194 304                     | 16.00                  | 0.001181     | 0.124467     |
 | test\_stft\_forward                        | 8 × 16 384 = 131 072                            | 0.50                   | 0.000463     | 0.029659     |
 | test\_generate\_pink\_noise\_fft           | 16 × 16 384 = 262 144                           | 1.00                   | 0.003208     | 0.035720     |
-| test\_generate\_pink\_noise\_pooling       | 16 × 16 384 = 262 144                           | 1.00                   | 0.014538     | 0.006774     |
 | test\_generate\_burst                      | 16 × 16 384 = 262 144                           | 1.00                   | 0.001296     | 0.035956     |
 | test\_generate\_tone                       | 16 × 16 384 = 262 144                           | 1.00                   | 0.005534     | 0.000968     |
 | test\_simulate\_rp                         | 16 × 8 192 = 131 072                            | 0.50                   | 0.392570     | 1.182594     |
@@ -504,7 +455,6 @@ auto spec = audio::stft_forward(
 | test\_spec\_augment\_batch\_equal          | 128 × 256 × 1 024 = 33 554 432                  | 128.00                 | 0.008994     | 0.405727     |
 | test\_stft\_forward                        | 32 × 131 072 = 4 194 304                        | 16.00                  | 0.010533     | 0.001465     |
 | test\_generate\_pink\_noise\_fft           | 64 × 1 048 576 = 67 108 864                     | 256.00                 | 0.738784     | 0.007923     |
-| test\_generate\_pink\_noise\_pooling       | 64 × 262 144 = 16 777 216                       | 64.00                  | 0.966833     | 0.004687     |
 | test\_generate\_burst                      | 64 × 1 000 000 = 64 000 000                     | 244.14                 | 0.300093     | 0.151337     |
 | test\_generate\_tone                       | 64 × 262 144 = 16 777 216                       | 64.00                  | 0.772285     | 0.004031     |
 | test\_simulate\_rp                         | 32 × 8 192 = 262 144                            | 1.00                   | 0.777904     | 1.230409     |
