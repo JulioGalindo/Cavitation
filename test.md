@@ -62,40 +62,46 @@ where σ is the noise standard deviation.
 Pink noise exhibits a power spectral density (PSD)
 
 ```math
-S(f)\propto \frac{1}{f}\,,
+S(f) \propto \frac{1}{f},
 ```
 
 i.e. each octave carries equal energy.
 
-##### **Spectral FFT-Based Shaping**
+#### *Spectral FFT–Based Shaping*
 
-1. Generate white noise \$w\[n]\in\mathcal N(0,1)\$.
-2. Compute real FFT:
+1. **Generate white noise** $w[n]\sim\mathcal{N}(0,1)$ for $n=0,\dots,N-1$.
 
-```math
-   W[k] = \sum_{n=0}^{N-1} w[n]\,e^{-j2\pi kn/N},\quad k=0,\dots,\tfrac{N}{2}.
-   ```
-3. Build a frequency-domain filter
+2. **Compute real FFT**:
 
 ```math
-   H[k] = \frac{1}{\sqrt{f_k+\epsilon}},
-   \quad f_k = \frac{k}{N}\,f_s,
+   W[k] = \sum_{n=0}^{N-1} w[n]\;e^{-j\,2\pi\,k\,n/N},\quad k=0,\dots,\frac{N}{2}.
    ```
 
-   where \$f\_s\$ is the sampling rate and \$\epsilon\$ avoids division by zero.
-4. Multiply and invert:
+3. **Build frequency-domain filter**. For each bin $k$,
 
 ```math
-   \widetilde W[k] = W[k]\,H[k],\qquad
-   y_{\mathrm{fft}}[n] = \mathrm{IRFFT}\{\widetilde W[k]\}.
+   f_k = \frac{k}{N}\,f_s,\qquad
+   H[k] = \frac{1}{\sqrt{f_k + \epsilon}},
    ```
-5. Normalize RMS to unity:
+
+   where $f_s$ is the sampling rate and $\epsilon$ is a small constant to avoid division by zero at $k=0$.
+
+4. **Multiply by filter and invert**:
 
 ```math
-   y_{\mathrm{fft}}[n] \;\leftarrow\; \frac{y_{\mathrm{fft}}[n]}{\sqrt{\tfrac{1}{N}\sum_n y_{\mathrm{fft}}[n]^2}}.
+   \widetilde{W}[k] = W[k]\;H[k],\qquad
+   y_{\mathrm{fft}}[n] = \mathrm{IRFFT}\{\widetilde{W}[k]\}.
    ```
 
-This spectral-shaping approach is \$O(N\log N)\$, yields a precise \$1/f\$ PSD across all bins, and is the state-of-the-art (SOTA) for batch ML pipelines on GPU/MPS.
+   where IRFFT is the Inverse Real Fast Fourier Transform
+   
+5. **Normalize RMS to unity**:
+
+```math
+   y_{\mathrm{fft}}[n] \;\leftarrow\; \frac{y_{\mathrm{fft}}[n]}{\sqrt{\frac{1}{N}\sum_{n=0}^{N-1}y_{\mathrm{fft}}[n]^2}}.
+   ```
+
+This spectral-shaping approach is $O(N\log N)$, yields a precise $1/f$ PSD across all frequency bins, and is State Of The Art (SOTA) for batch ML pipelines on GPU/MPS.
 
 ---
 
@@ -112,7 +118,7 @@ with window length \$L\$, hop \$H\$, FFT size \$N\$, producing a complex spectro
 
 ---
 
-### Butterworth IIR Filter (Cascade-Biquad)
+### Butterworth Infinite Impulse Response (IIR) Filter (Cascade-Biquad)
 
 Analog \$N\$-th order Butterworth:
 
@@ -127,13 +133,13 @@ H(z)=\prod_{i=1}^{N/2}\frac{b_{0,i}+b_{1,i}z^{-1}+b_{2,i}z^{-2}}
                           {1+a_{1,i}z^{-1}+a_{2,i}z^{-2}},
 ```
 
-with SOS coefficients per section \[2,5,9].
+with Second-Order Section (SOS) coefficients per section \[2,5,9].
 
 ---
 
 ### Rayleigh–Plesset Bubble Dynamics
 
-Bubble radius \$R(t)\$ obeys
+Bubble radius \$R(t)\$ obeys Ordinary Differential Equation (ODE):
 
 ```math
 \rho\Bigl(R\ddot R+\tfrac{3}{2}\dot R^2\Bigr)
@@ -141,7 +147,18 @@ Bubble radius \$R(t)\$ obeys
 =\frac{P_\infty-P_v}{R},
 ```
 
-integrated by 4th-order Runge–Kutta \[6].
+where:
+
+* $\rho$: liquid density (kg/m³)
+* $R(t)$: instantaneous bubble radius (m)
+* $\dot{R} = \tfrac{dR}{dt}$: radial velocity of the bubble wall (m/s)
+* $\ddot{R} = \tfrac{d^2R}{dt^2}$: radial acceleration of the bubble wall (m/s²)
+* $\mu$: dynamic viscosity of the liquid (Pa·s)
+* $\sigma$: surface tension at the liquid–vapor interface (N/m)
+* $P_\infty$: far-field (ambient) liquid pressure (Pa)
+* $P_v$: vapor (internal) pressure inside the bubble (Pa)
+
+integrated by 4th-order Runge–Kutta because of its nonlinear coupling between $R$, $\dot{R}$, $\ddot{R}$ \[6].
 
 ---
 
@@ -202,6 +219,8 @@ All operate in float32 for maximum throughput on GPU/MPS.
 
 ### stft\_forward
 
+Compute Short-Time Fourier Transform (STFT) of the input signals.
+
 ```cpp
 torch::Tensor stft_forward(
     const Tensor& input,
@@ -216,13 +235,13 @@ torch::Tensor stft_forward(
 );
 ```
 
-**Objective:** Compute Short-Time Fourier Transform (STFT) of the input signals.
-
 **Returns:** Complex tensor `[batch_size, n_fft/2+1, n_frames]` and dtype `torch::kComplexFloat`, representing the STFT spectrogram.
 
 ---
 
 ### generate\_pink\_noise\_fft
+
+Generate pink (1/f) noise using FFT-based spectral shaping.
 
 ```cpp
 torch::Tensor generate_pink_noise_fft(
@@ -233,13 +252,13 @@ torch::Tensor generate_pink_noise_fft(
 );
 ```
 
-**Objective:** Generate pink (1/f) noise using FFT-based spectral shaping.
-
 **Returns:** Float32 tensor `[batch_size, num_samples]` with pink noise normalized to unit RMS.
 
 ---
 
 ### generate\_noise
+
+Generate Gaussian white noise, optionally adding pink component to achieve desired SNR.
 
 ```cpp
 torch::Tensor generate_noise(
@@ -252,13 +271,13 @@ torch::Tensor generate_noise(
 );
 ```
 
-**Objective:** Generate Gaussian white noise, optionally adding pink component to achieve desired SNR.
-
 **Returns:** Float32 tensor `[batch_size, num_samples]` of noise with specified SNR (if `add_pink=true`, includes pink noise component).
 
 ---
 
 ### generate\_burst
+
+Simulate cavitation burst events with vectorized operations.
 
 ```cpp
 std::tuple<Tensor,Tensor> generate_burst(
@@ -275,7 +294,6 @@ std::tuple<Tensor,Tensor> generate_burst(
 );
 ```
 
-**Objective:** Simulate cavitation burst events with vectorized operations.
 **Returns:**
 
 * `bursts`: Float32 tensor `[batch_size, num_samples]` of burst signals.
@@ -285,6 +303,8 @@ std::tuple<Tensor,Tensor> generate_burst(
 ---
 
 ### generate\_tone
+
+Synthesize a multi-harmonic, frequency-modulated rotor tone.
 
 ```cpp
 torch::Tensor generate_tone(
@@ -299,13 +319,13 @@ torch::Tensor generate_tone(
 );
 ```
 
-**Objective:** Synthesize a multi-harmonic, frequency-modulated rotor tone.
-
 **Returns:** Float32 tensor `[batch_size, num_samples]` of generated tone signal (normalized ±1).
 
 ---
 
 ### simulate\_rp
+
+Integrate Rayleigh–Plesset ODE via RK4 (Runge Kutta) to simulate bubble dynamics.
 
 ```cpp
 torch::Tensor simulate_rp(
@@ -324,13 +344,13 @@ torch::Tensor simulate_rp(
 );
 ```
 
-**Objective:** Integrate Rayleigh–Plesset ODE via RK4 to simulate bubble dynamics.
-
 **Returns:** Float32 tensor `[batch_size, num_samples]` of bubble radius (or related acceleration) per timestep.
 
 ---
 
 ### butterworth\_sos
+
+Compute second-order-section (SOS) coefficients for Butterworth IIR filter design.
 
 ```cpp
 torch::Tensor butterworth_sos(
@@ -343,13 +363,13 @@ torch::Tensor butterworth_sos(
 );
 ```
 
-**Objective:** Compute second-order-section (SOS) coefficients for Butterworth IIR filter design.
-
 **Returns:** Float32 tensor `[n_sections, 6]` of SOS coefficients `{b0,b1,b2,a0,a1,a2}`.
 
 ---
 
 ### apply\_butterworth
+
+Apply cascade-biquad Butterworth Infinite Impulse Response (IIR) filtering to input signals.
 
 ```cpp
 torch::Tensor apply_butterworth(
@@ -363,13 +383,13 @@ torch::Tensor apply_butterworth(
 );
 ```
 
-**Objective:** Apply cascade-biquad Butterworth IIR filtering to input signals.
-
 **Returns:** Float32 tensor `[batch_size, num_samples]` of filtered signals.
 
 ---
 
 ### framing\_batch
+
+egment input signals into overlapping frames.
 
 ```cpp
 torch::Tensor framing_batch(
@@ -379,8 +399,6 @@ torch::Tensor framing_batch(
 );
 ```
 
-**Objective:** Segment input signals into overlapping frames.
-
 **Returns:**
 
 * If `signals` is `[batch_size, time]`, returns `[batch_size, n_frames, frame_length]`.
@@ -389,6 +407,8 @@ torch::Tensor framing_batch(
 ---
 
 ### spec\_augment\_batch
+
+Apply SpecAugment masking (frequency and time) to a batch of spectrograms.
 
 ```cpp
 torch::Tensor spec_augment_batch(
@@ -400,8 +420,6 @@ torch::Tensor spec_augment_batch(
     bool    inplace
 );
 ```
-
-**Objective:** Apply SpecAugment masking (frequency and time) to a batch of spectrograms.
 
 **Returns:** Float32 tensor `[batch_size, n_mels, time]` with masks applied. If `inplace=true`, masks `specs` in place; otherwise returns a masked clone.
 
