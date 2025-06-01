@@ -16,16 +16,16 @@ This version replaces the previous **heavy_compute**/**dtensor_bridge** modules 
 - [Theoretical Background and Mathematical Formulations](#theoretical-background-and-mathematical-formulations)  
 - [Overview](#overview)  
 - [API Reference](#api-reference)  
-  - [`stft_forward`](#stft_forward)  
-  - [`generate_pink_noise_fft`](#generate_pink_noise_fft)  
-  - [`generate_noise`](#generate_noise)  
-  - [`generate_burst`](#generate_burst)  
-  - [`generate_tone`](#generate_tone)  
-  - [`simulate_rp`](#simulate_rp)  
-  - [`butterworth_sos`](#butterworth_sos)  
-  - [`apply_butterworth`](#apply_butterworth)  
-  - [`framing_batch`](#framing_batch)  
-  - [`spec_augment_batch`](#spec_augment_batch)  
+  - [stft_forward](#stft_forward)  
+  - [generate_pink_noise_fft](#generate_pink_noise_fft)  
+  - [generate_noise](#generate_noise)  
+  - [generate_burst](#generate_burst)  
+  - [generate_tone](#generate_tone)  
+  - [simulate_rp](#simulate_rp)  
+  - [butterworth_sos](#butterworth_sos)  
+  - [apply_butterworth](#apply_butterworth)  
+  - [framing_batch](#framing_batch)  
+  - [spec_augment_batch](#spec_augment_batch)  
 - [Examples](#examples)  
 - [CPU/GPU Performance Comparison (Mac M4 Processor)](#cpugpu-performance-comparison-mac-m4-processor)  
 - [References](#references)  
@@ -495,4 +495,3 @@ auto spec = audio::stft_forward(
 [9] SciPy Signal Documentation: “Butterworth filter design.” *SciPy.org*.  
 [10] IEEE Standards Association. (2008). “IEEE Standard for Floating-Point Arithmetic.” IEEE Std 754-2008.  
 [11] Cubuk, E. D., Zoph, B., Shlens, J., & Le, Q. V. (2018). “AutoAugment: Learning Augmentation Policies from Data.” *CVPR*.
-
