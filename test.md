@@ -28,7 +28,7 @@ This version replaces the previous **heavy_compute**/**dtensor_bridge** modules 
   - [`framing_batch`](#framing_batch)  
   - [`spec_augment_batch`](#spec_augment_batch)  
 - [Examples](#examples)  
-- [CPU/GPU Performance Comparison (Mac M4 Processor)](#cpu\/gpu-performance-comparison-\(mac-m4-processor\))  
+- [CPU/GPU Performance Comparison (Mac M4 Processor)](#cpugpu-performance-comparison-mac-m4-processor)  
 - [References](#references)  
 
 ---
